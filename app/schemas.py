@@ -14,9 +14,10 @@ class FileMetadata(FileMetadataBase):
     id: int
 
     class Config:
-        orm_mode: True
+        from_attributes = True
 
 class Response(BaseModel, Generic[T]):
+    status_code: int = 200
     error: bool = False
     detail: str
     data: Optional[T] = None
