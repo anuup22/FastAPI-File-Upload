@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Depends, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, Depends, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
 import os
 import asyncio
@@ -13,10 +13,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-@app.get("/")
-async def read_root():
-    return {"Hello": "World"}
 
 async def save_file(file: UploadFile, file_location: str):
     loop = asyncio.get_event_loop()
@@ -34,6 +30,10 @@ def save_file_metadata(db: Session, filename: str, file_location: str):
     db.commit()
     db.refresh(file_metadata)
 
+@app.get("/")
+async def read_root():
+    return {"msg": "Hello World"}
+
 @app.post("/uploadfile/")
 async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...), db: Session = Depends(get_db)):
     file_location = f"uploads/{file.filename}"
@@ -48,6 +48,6 @@ async def get_files(db: Session = Depends(get_db)):
 @app.get("/file/{file_id}")
 async def get_file(file_id: int, db: Session = Depends(get_db)):
     file_metadata = db.query(FileMetadata).filter(FileMetadata.id == file_id).first()
-    if not file_metadata:
-        return {"error": "File not found"}
-    return {"file_metadata": file_metadata}
+    if file_metadata is None:
+        raise HTTPException(status_code=404, detail="File not found")
+    return file_metadata
