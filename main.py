@@ -1,6 +1,8 @@
 from fastapi import FastAPI, File, UploadFile, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 import os
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from database import SessionLocal, FileMetadata, engine
 
 app = FastAPI()
@@ -17,8 +19,13 @@ async def read_root():
     return {"Hello": "World"}
 
 async def save_file(file: UploadFile, file_location: str):
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as pool:
+        await loop.run_in_executor(pool, _write_file, file, file_location)
+
+def _write_file(file: UploadFile, file_location: str):
     with open(file_location, "wb") as f:
-        while content := await file.read(1024 * 1024):  # Read file in 1MB chunks
+        while content := file.file.read(1024 * 1024):  # Read file in 1MB chunks
             f.write(content)
 
 def save_file_metadata(db: Session, filename: str, file_location: str):
