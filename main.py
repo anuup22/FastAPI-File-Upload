@@ -28,3 +28,14 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
     db.refresh(file_metadata)
 
     return {"info": f"file '{file.filename}' saved at '{file_location}'", "file_id": file_metadata.id}
+
+@app.get("/files/")
+async def get_files(db: Session = Depends(get_db)):
+    return {"files": db.query(FileMetadata).all()}
+
+@app.get("/file/{file_id}")
+async def get_file(file_id: int, db: Session = Depends(get_db)):
+    file_metadata = db.query(FileMetadata).filter(FileMetadata.id == file_id).first()
+    if not file_metadata:
+        return {"error": "File not found"}
+    return {"file_metadata": file_metadata}
