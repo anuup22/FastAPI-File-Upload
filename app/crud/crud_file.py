@@ -1,12 +1,13 @@
 from sqlalchemy.orm import Session
 from app.models.database import FileMetadata
+from app.schemas import FileMetadataCreate
 
-def create_file_metadata(db: Session, filename: str, file_location: str):
-    file_metadata = FileMetadata(filename=filename, file_path=file_location)
-    db.add(file_metadata)
+def create_file_metadata(db: Session, file_metadata: FileMetadataCreate):
+    db_file_metadata = FileMetadata(**file_metadata.dict())
+    db.add(db_file_metadata)
     db.commit()
-    db.refresh(file_metadata)
-    return file_metadata
+    db.refresh(db_file_metadata)
+    return db_file_metadata
 
 def get_file_metadata(db: Session, file_id: int):
     return db.query(FileMetadata).filter(FileMetadata.id == file_id).first()

@@ -5,6 +5,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from app.models.database import SessionLocal
 from app.crud import crud_file
+from app.schemas import FileMetadata, FileMetadataCreate
 
 router = APIRouter()
 
@@ -24,26 +25,27 @@ def _write_file(file_content: bytes, file_location: str):
     with open(file_location, "wb") as f:
         f.write(file_content)
 
-@router.post("/uploadfile/")
+@router.post("/uploadfile/", response_model=FileMetadata)
 async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...), db: Session = Depends(get_db)):
     file_location = f"uploads/{file.filename}"
     file_content = await file.read()  # Read the file content in the main thread
     background_tasks.add_task(save_file, file_content, file_location)
-    background_tasks.add_task(crud_file.create_file_metadata, db, file.filename, file_location)
-    return {"info": f"file '{file.filename}' will be saved at '{file_location}'"}
+    file_metadata_create = FileMetadataCreate(filename=file.filename, file_path=file_location)
+    db_file_metadata = crud_file.create_file_metadata(db, file_metadata_create)
+    return db_file_metadata
 
-@router.get("/files/")
+@router.get("/files/", response_model=list[FileMetadata])
 async def get_files(db: Session = Depends(get_db)):
-    return {"files": crud_file.get_files_metadata(db)}
+    return crud_file.get_files_metadata(db)
 
-@router.get("/file/{file_id}")
+@router.get("/file/{file_id}", response_model=FileMetadata)
 async def get_file(file_id: int, db: Session = Depends(get_db)):
     file_metadata = crud_file.get_file_metadata(db, file_id)
     if file_metadata is None:
         raise HTTPException(status_code=404, detail="File not found")
     return file_metadata
 
-@router.delete("/file/{file_id}")
+@router.delete("/file/{file_id}", response_model=FileMetadata)
 async def delete_file(file_id: int, db: Session = Depends(get_db)):
     file_metadata = crud_file.get_file_metadata(db, file_id)
     if file_metadata is None:
@@ -56,4 +58,4 @@ async def delete_file(file_id: int, db: Session = Depends(get_db)):
     # Remove the file metadata from the database
     crud_file.delete_file_metadata(db, file_id)
 
-    return {"info": f"file '{file_metadata.filename}' deleted"}
+    return file_metadata
