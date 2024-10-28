@@ -17,6 +17,6 @@ class FileMetadata(FileMetadataBase):
         orm_mode: True
 
 class Response(BaseModel, Generic[T]):
-    error: bool
+    error: bool = False
     detail: str
     data: Optional[T] = None
