@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
+import os
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from app.models.database import SessionLocal
@@ -41,3 +42,18 @@ async def get_file(file_id: int, db: Session = Depends(get_db)):
     if file_metadata is None:
         raise HTTPException(status_code=404, detail="File not found")
     return file_metadata
+
+@router.delete("/file/{file_id}")
+async def delete_file(file_id: int, db: Session = Depends(get_db)):
+    file_metadata = crud_file.get_file_metadata(db, file_id)
+    if file_metadata is None:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Remove the file from the server
+    if os.path.exists(file_metadata.file_path):
+        os.remove(file_metadata.file_path)
+
+    # Remove the file metadata from the database
+    crud_file.delete_file_metadata(db, file_id)
+
+    return {"info": f"file '{file_metadata.filename}' deleted"}
