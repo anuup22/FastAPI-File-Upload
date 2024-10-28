@@ -28,7 +28,7 @@ def save_file_metadata(db: Session, filename: str, file_location: str):
     db.refresh(file_metadata)
 
 @app.post("/uploadfile/")
-async def upload_file(file: UploadFile = File(...), background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...), db: Session = Depends(get_db)):
     file_location = f"uploads/{file.filename}"
     background_tasks.add_task(save_file, file, file_location)
     background_tasks.add_task(save_file_metadata, db, file.filename, file_location)
