@@ -16,9 +16,7 @@ class FileMetadata(FileMetadataBase):
     class Config:
         orm_mode: True
 
-class ErrorResponse(BaseModel):
-    detail: str
-
 class Response(BaseModel, Generic[T]):
+    error: bool
+    detail: str
     data: Optional[T] = None
-    error: Optional[ErrorResponse] = None
