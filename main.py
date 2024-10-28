@@ -20,7 +20,8 @@ async def read_root():
 async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
     file_location = f"uploads/{file.filename}"
     with open(file_location, "wb") as f:
-        f.write(await file.read())
+        while content := await file.read(1024):  # Read file in chunks
+            f.write(content)
 
     file_metadata = FileMetadata(filename=file.filename, file_path=file_location)
     db.add(file_metadata)
