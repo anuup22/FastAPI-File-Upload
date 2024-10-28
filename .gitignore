@@ -90,6 +90,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# extras
+uploads/
+
 # Spyder project settings
 .spyderproject
 .spyderworkspace
