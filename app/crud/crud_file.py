@@ -3,7 +3,7 @@ from app.models.database import FileMetadata
 from app.schemas import FileMetadataCreate
 
 def create_file_metadata(db: Session, file_metadata: FileMetadataCreate):
-    db_file_metadata = FileMetadata(**file_metadata.dict())
+    db_file_metadata = FileMetadata(**file_metadata.model_dump())
     db.add(db_file_metadata)
     db.commit()
     db.refresh(db_file_metadata)
