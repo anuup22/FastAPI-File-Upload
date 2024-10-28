@@ -18,7 +18,7 @@ async def read_root():
 
 async def save_file(file: UploadFile, file_location: str):
     with open(file_location, "wb") as f:
-        while content := await file.read(1024):  # Read file in chunks
+        while content := await file.read(1024 * 1024):  # Read file in 1MB chunks
             f.write(content)
 
 def save_file_metadata(db: Session, filename: str, file_location: str):
