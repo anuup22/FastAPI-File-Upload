@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Depends
+from fastapi import FastAPI, File, UploadFile, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 import os
 from database import SessionLocal, FileMetadata, engine
@@ -16,19 +16,23 @@ def get_db():
 async def read_root():
     return {"Hello": "World"}
 
-@app.post("/uploadfile/")
-async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    file_location = f"uploads/{file.filename}"
+async def save_file(file: UploadFile, file_location: str):
     with open(file_location, "wb") as f:
         while content := await file.read(1024):  # Read file in chunks
             f.write(content)
 
-    file_metadata = FileMetadata(filename=file.filename, file_path=file_location)
+def save_file_metadata(db: Session, filename: str, file_location: str):
+    file_metadata = FileMetadata(filename=filename, file_path=file_location)
     db.add(file_metadata)
     db.commit()
     db.refresh(file_metadata)
 
-    return {"info": f"file '{file.filename}' saved at '{file_location}'", "file_id": file_metadata.id}
+@app.post("/uploadfile/")
+async def upload_file(file: UploadFile = File(...), background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    file_location = f"uploads/{file.filename}"
+    background_tasks.add_task(save_file, file, file_location)
+    background_tasks.add_task(save_file_metadata, db, file.filename, file_location)
+    return {"info": f"file '{file.filename}' will be saved at '{file_location}'"}
 
 @app.get("/files/")
 async def get_files(db: Session = Depends(get_db)):
