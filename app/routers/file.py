@@ -14,20 +14,20 @@ def get_db():
     finally:
         db.close()
 
-async def save_file(file: UploadFile, file_location: str):
+async def save_file(file_content: bytes, file_location: str):
     loop = asyncio.get_event_loop()
     with ThreadPoolExecutor() as pool:
-        await loop.run_in_executor(pool, _write_file, file, file_location)
+        await loop.run_in_executor(pool, _write_file, file_content, file_location)
 
-def _write_file(file: UploadFile, file_location: str):
+def _write_file(file_content: bytes, file_location: str):
     with open(file_location, "wb") as f:
-        while content := file.file.read(1024 * 1024):  # Read file in 1MB chunks
-            f.write(content)
+        f.write(file_content)
 
 @router.post("/uploadfile/")
 async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...), db: Session = Depends(get_db)):
     file_location = f"uploads/{file.filename}"
-    background_tasks.add_task(save_file, file, file_location)
+    file_content = await file.read()  # Read the file content in the main thread
+    background_tasks.add_task(save_file, file_content, file_location)
     background_tasks.add_task(crud_file.create_file_metadata, db, file.filename, file_location)
     return {"info": f"file '{file.filename}' will be saved at '{file_location}'"}
 
